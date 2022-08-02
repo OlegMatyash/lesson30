@@ -2,3 +2,6 @@
 /bin
 /lib
 /templates
+.idea/
+db.sqlite3
+*.pyc
