@@ -7,18 +7,16 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import DetailView, ListView, CreateView, UpdateView, DeleteView
 from ads import settings
-from ads.models import Ad, Category
+from ads.models import Ad, Category, Selection
 from users.models import User
 
 
 def index(request):
-    return JsonResponse({
-        "status": "ok"
-    })
+    return JsonResponse({"status": "ok"}, status=200)
 
 
 class CategoryView(ListView):
-    model = Category
+    models = Category
     queryset = Category.objects.all()
 
     def get(self, request, *args, **kwargs):
@@ -61,7 +59,7 @@ class CategoryCreateView(CreateView):
         return JsonResponse({
             "id": category.id,
             "name": category.name,
-        })
+        }, safe=False)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -94,7 +92,7 @@ class CategoryDeleteView(DeleteView):
         return JsonResponse({"status": "ok"}, status=200)
 
 
-class AdView(ListView):
+class AdListView(ListView):
     model = Ad
     queryset = Ad.objects.all()
 
@@ -105,8 +103,24 @@ class AdView(ListView):
     def get(self, request, *args, **kwargs):
         super().get(request, *args, **kwargs)
 
+        categories = request.GET.getlist("cat", [])
+        if categories:
+            self.object_list = self.object_list.filter(category_id__in=categories)
+
+        if request.GET.get("text", None):
+            self.object_list = self.object_list.filter(name__icontains=request.GET.get("text"))
+
+        if request.GET.get("location", None):
+            self.object_list = self.object_list.filter(author__locations__name__icontains=request.GET.get("location"))
+
+        if request.GET.get("price_from", None):
+            self.object_list = self.object_list.filter(price__gte=request.GET.get("price_from"))
+
+        if request.GET.get("price_to", None):
+            self.object_list = self.object_list.filter(price__lte=request.GET.get("price_to"))
+
         self.object_list = self.object_list.select_related('author').order_by('-price')
-        paginator = Paginator(self.object_list, settings.TOTAL_ON_PAGE)
+        paginator = Paginator(self.object_list, settings.REST_FRAMEWORK['PAGE_SIZE'])
         page_number = request.GET.get("page")
         page_obj = paginator.get_page(page_number)
 
@@ -155,13 +169,13 @@ class AdDetailView(DetailView):
 @method_decorator(csrf_exempt, name='dispatch')
 class AdCreateView(CreateView):
     model = Ad
-    fields = ['name', 'author', 'price', 'description', 'category']
+    fields = ['name', 'author', 'price', 'description', 'is_published', 'category']
 
     def post(self, request, *args, **kwargs):
         ad_data = json.loads(request.body)
 
         author = get_object_or_404(User, ad_data['author_id'])
-        category=get_object_or_404(Category, ad_data['category_id'])
+        category = get_object_or_404(Category, ad_data['category_id'])
 
         ad = Ad.objects.create(
             name=ad_data['name'],
