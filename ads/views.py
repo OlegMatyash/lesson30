@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import DetailView, ListView, CreateView, UpdateView, DeleteView
+
 from ads import settings
 from ads.models import Ad, Category, Selection
 from users.models import User
@@ -21,39 +22,39 @@ class CategoryView(ListView):
 
     def get(self, request, *args, **kwargs):
         super().get(request, *args, **kwargs)
-        self.object_list = self.object_list.order_by('name')
+        self.object_list = self.object_list.order_by("name")
 
         response = []
         for category in self.object_list:
             response.append({
-                'id': category.id,
-                'name': category.name,
-             })
+                "id": category.id,
+                "name": category.name,
+            })
         return JsonResponse(response, safe=False)
 
 
 class CategoryDetailView(DetailView):
-        model = Category
+    model = Category
 
-        def get(self, request, *args, **kwargs):
-            category = self.get_object()
+    def get(self, request, *args, **kwargs):
+        category = self.get_object()
 
-            return JsonResponse({
-                    'id': category.id,
-                    'name': category.name,
-                })
+        return JsonResponse({
+            "id": category.id,
+            "name": category.name,
+        })
 
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CategoryCreateView(CreateView):
     model = Category
-    fields = ['name']
+    fields = ["name"]
 
     def post(self, request, *args, **kwargs):
         category_data = json.loads(request.body)
 
         category = Category.objects.create(
-            name=category_data['name']
+            name=category_data["name"]
         )
 
         return JsonResponse({
@@ -65,26 +66,26 @@ class CategoryCreateView(CreateView):
 @method_decorator(csrf_exempt, name='dispatch')
 class CategoryUpdateView(UpdateView):
     model = Category
-    fields = ['name']
+    fields = ["name"]
 
     def patch(self, request, *args, **kwargs):
         super().post(request, *args, **kwargs)
 
         category_data = json.loads(request.body)
-        self.object.name = category_data['name']
+        self.object.name = category_data["name"]
 
         self.object.save()
 
         return JsonResponse({
-                'id': self.object.id,
-                'name': self.object.name,
-             })
+            "id": self.object.id,
+            "name": self.object.name,
+        })
 
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CategoryDeleteView(DeleteView):
     model = Category
-    success_url = '/'
+    success_url = "/"
 
     def delete(self, request, *args, **kwargs):
         super().delete(request, *args, **kwargs)
@@ -93,7 +94,7 @@ class CategoryDeleteView(DeleteView):
 
 
 class AdListView(ListView):
-    model = Ad
+    models = Ad
     queryset = Ad.objects.all()
 
     def __init__(self, **kwargs):
@@ -119,29 +120,29 @@ class AdListView(ListView):
         if request.GET.get("price_to", None):
             self.object_list = self.object_list.filter(price__lte=request.GET.get("price_to"))
 
-        self.object_list = self.object_list.select_related('author').order_by('-price')
-        paginator = Paginator(self.object_list, settings.REST_FRAMEWORK['PAGE_SIZE'])
-        page_number = request.GET.get("page")
+        self.object_list = self.object_list.select_related('author').order_by("-price")
+        paginator = Paginator(self.object_list, settings.REST_FRAMEWORK["PAGE_SIZE"])
+        page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
 
         ads = []
         for ad in page_obj:
             ads.append({
-                'id': ad.id,
-                'name': ad.name,
-                'author_id': ad.author_id,
-                'author': ad.autor.first_name,
-                'price': ad.price,
-                'description': ad.description,
-                'is_published': ad.is_published,
-                'category_id': ad.category_id,
-                'image': ad.image.url if ad.image else None,
+                "id": ad.id,
+                "name": ad.name,
+                "author_id": ad.author_id,
+                "author": ad.author.first_name,
+                "price": ad.price,
+                "description": ad.description,
+                "is_published": ad.is_published,
+                "category_id": ad.category_id,
+                "image": ad.image.url if ad.image else None,
             })
 
         response = {
-            'items': ads,
-            'num_page': page_obj.paginator.num_pages,
-            'total': page_obj.paginator.count
+            "items": ads,
+            "num_page": page_obj.paginator.num_pages,
+            "total": page_obj.paginator.count
         }
 
         return JsonResponse(response, safe=False)
@@ -169,20 +170,20 @@ class AdDetailView(DetailView):
 @method_decorator(csrf_exempt, name='dispatch')
 class AdCreateView(CreateView):
     model = Ad
-    fields = ['name', 'author', 'price', 'description', 'is_published', 'category']
+    fields = ["name", "author", "price", "description", "is_published", "category"]
 
     def post(self, request, *args, **kwargs):
         ad_data = json.loads(request.body)
 
-        author = get_object_or_404(User, ad_data['author_id'])
-        category = get_object_or_404(Category, ad_data['category_id'])
+        author = get_object_or_404(User, ad_data["author_id"])
+        category = get_object_or_404(Category, ad_data["category_id"])
 
         ad = Ad.objects.create(
-            name=ad_data['name'],
+            name=ad_data["name"],
             author=author,
-            price=ad_data['price'],
-            description=ad_data['description'],
-            is_published=ad_data['is_published'],
+            price=ad_data["price"],
+            description=ad_data["description"],
+            is_published=ad_data["is_published"],
             category=category,
         )
 
