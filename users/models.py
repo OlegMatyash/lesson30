@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import AbstractUser
 
 
 class Location(models.Model):
@@ -14,20 +15,20 @@ class Location(models.Model):
         return self.name
 
 
-class User(models.Model):
+class User(AbstractUser):
+    USER = 'user'
+    MODERATOR = 'moderator'
+    ADMIN = 'admin'
+
     ROLES = [
-        ("member", "Пользователь"),
-        ("moderator", "Модератор"),
-        ("admin", "Админ"),
+        (USER, USER),
+        (MODERATOR, MODERATOR),
+        (ADMIN, ADMIN),
     ]
 
-    first_name = models.CharField(max_length=50)
-    last_name = models.CharField(max_length=50)
-    user_name = models.CharField(max_length=50)
-    password = models.CharField(max_length=128)
-    role = models.CharField(max_length=9, choices=ROLES, default="member")
-    age = models.PositiveIntegerField(null=True)
-    locations = models.ManyToManyField(Location)
+    role = models.CharField(max_length=9, choices=ROLES, default=USER)
+    age = models.PositiveSmallIntegerField(null=True, blank=True)
+    locations = models.ManyToManyField(Location, blank=True)
 
     class Meta:
         verbose_name = "Пользователь"
@@ -35,4 +36,4 @@ class User(models.Model):
         ordering = ["user_name"]
 
     def __str__(self):
-        return self.user_name
+        return self.username

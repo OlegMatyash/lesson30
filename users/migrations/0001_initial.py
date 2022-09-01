@@ -39,7 +39,7 @@ class Migration(migrations.Migration):
             options={
                 'verbose_name': 'Пользователь',
                 'verbose_name_plural': 'Пользователи',
-                'ordering': ['user_name'],
+                'ordering': ['username'],
             },
         ),
     ]
